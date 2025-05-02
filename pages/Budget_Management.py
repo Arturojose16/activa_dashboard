@@ -1,6 +1,6 @@
 """
 ActivaGroup Business Intelligence Dashboard
-Budget Management Page
+Budget Management Page - Modern Sleek Design
 """
 import streamlit as st
 import pandas as pd
@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from utils.data_connector import ActivaDataConnector
 from utils.visualization import (
     COLORS, CHART_COLORS, CHART_COLORS_TRANSPARENT,
-    create_kpi_card, apply_dark_theme
+    create_kpi_card, create_gauge_chart, apply_dark_theme,
+    create_dashboard_header
 )
 
 # Page configuration
@@ -43,25 +44,26 @@ if "logged_in" in st.session_state and not st.session_state.logged_in:
     st.warning("Por favor inicie sesión para acceder al dashboard")
     st.stop()
 
-# Page header with smaller bottom margin
-st.markdown("""
-    <h1 style='margin-bottom:0.5rem;'>Gestión de Presupuesto</h1>
-    <p style='margin-bottom:2rem;'>Análisis de presupuesto vs. real, varianzas y tendencias</p>
-""", unsafe_allow_html=True)
+# Dashboard Header
+create_dashboard_header(
+    "Gestión de Presupuesto", 
+    "Análisis de presupuesto vs. real, varianzas y tendencias"
+)
 
-# Add simple navigation tabs
+# Modern Navigation Bar with active state
 st.markdown("""
-    <div style="display: flex; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-        <a href="/dashboard" target="_self" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; margin-right: 8px;">Dashboard</a>
-        <a href="/Client_Overview" target="_self" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; margin-right: 8px;">Visión de Clientes</a>
-        <a href="/Revenue_Analysis" target="_self" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; margin-right: 8px;">Análisis de Ingresos</a>
-        <a href="/Budget_Management" target="_self" style="color: white; text-decoration: none; padding: 8px 16px; margin-right: 8px; background: rgba(243, 111, 33, 0.2); border-bottom: 2px solid #F36F21; border-radius: 4px 4px 0 0;">Gestión de Presupuesto</a>
-        <a href="/Financial_Performance" target="_self" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px;">Rendimiento Financiero</a>
-    </div>
+<div class="nav-container">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/Client_Overview" class="nav-link">Visión de Clientes</a>
+    <a href="/Revenue_Analysis" class="nav-link">Análisis de Ingresos</a>
+    <a href="/Budget_Management" class="nav-link-active">Gestión de Presupuesto</a>
+    <a href="/Financial_Performance" class="nav-link">Rendimiento Financiero</a>
+</div>
 """, unsafe_allow_html=True)
 
 # Sidebar filters
-st.sidebar.title("Filtros")
+with st.sidebar:
+    st.markdown('<h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Filtros</h3>', unsafe_allow_html=True)
 
 # Load Data
 with st.spinner("Cargando datos..."):
@@ -87,20 +89,21 @@ with st.spinner("Cargando datos..."):
 
 # Add industry filter if data is available
 if not df.empty and "industria" in df.columns:
-    all_industries = ["Todas las Industrias"] + sorted(df["industria"].unique().tolist())
-    selected_industry = st.sidebar.selectbox("Industria", all_industries)
-    
-    # Filter data based on selection
-    if selected_industry != "Todas las Industrias":
-        # Filter budget data
-        if "industria" in budget_data.columns:
-            budget_data = budget_data[budget_data["industria"] == selected_industry]
+    with st.sidebar:
+        all_industries = ["Todas las Industrias"] + sorted(df["industria"].unique().tolist())
+        selected_industry = st.selectbox("Industria", all_industries)
         
-        # Filter combined data
-        df = df[df["industria"] == selected_industry]
+        # Filter data based on selection
+        if selected_industry != "Todas las Industrias":
+            # Filter budget data
+            if "industria" in budget_data.columns:
+                budget_data = budget_data[budget_data["industria"] == selected_industry]
+            
+            # Filter combined data
+            df = df[df["industria"] == selected_industry]
 
 # Key Budget Metrics
-st.header("Métricas de Presupuesto")
+st.markdown('<h2>Métricas de Presupuesto</h2>', unsafe_allow_html=True)
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -110,7 +113,8 @@ with col1:
     create_kpi_card(
         "Presupuesto Total", 
         total_budget,
-        is_currency=True
+        is_currency=True,
+        icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>'
     )
 
 with col2:
@@ -119,111 +123,89 @@ with col2:
     create_kpi_card(
         "Ejecución Total", 
         total_actual,
-        is_currency=True
+        is_currency=True,
+        icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>'
     )
 
 with col3:
     # Budget Variance
     if not budget_data.empty and total_budget > 0:
         variance = total_actual - total_budget
-        variance_pct = (variance / total_budget * 100).round(1)
+        variance_pct = round((variance / total_budget * 100), 1)
         create_kpi_card(
             "Varianza", 
             variance,
             subtitle=f"{variance_pct}% del presupuesto",
-            is_currency=True
+            is_currency=True,
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>'
         )
     else:
         create_kpi_card(
             "Varianza", 
             "N/A",
-            is_currency=True
+            is_currency=True,
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>'
         )
 
 with col4:
     # Budget Utilization
     if not budget_data.empty and total_budget > 0:
-        utilization = (total_actual / total_budget * 100).round(1)
+        utilization = round((total_actual / total_budget * 100), 1)
         create_kpi_card(
             "Utilización", 
             utilization,
-            subtitle="% del presupuesto ejecutado"
+            subtitle="% del presupuesto ejecutado",
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
         )
     else:
         create_kpi_card(
             "Utilización", 
-            "N/A"
+            "N/A",
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
         )
 
 # Budget Utilization Overview
-st.header("Utilización del Presupuesto")
+st.markdown('<h2>Utilización del Presupuesto</h2>', unsafe_allow_html=True)
 
 if not budget_data.empty and total_budget > 0:
     col1, col2 = st.columns([1, 2])
     
     with col1:
         # Calculate overall budget utilization
-        overall_utilization = (total_actual / total_budget * 100).round(1)
+        overall_utilization = round((total_actual / total_budget * 100), 1)
         
-        # Create gauge chart
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=overall_utilization,
-            title={"text": "Utilización Global del Presupuesto", "font": {"size": 16, "color": COLORS['text']}},
-            gauge={
-                "axis": {
-                    "range": [0, 120],
-                    "tickwidth": 1,
-                    "tickcolor": COLORS['text']
-                },
-                "bar": {"color": COLORS['secondary'] if overall_utilization < 100 else COLORS['success'] if overall_utilization <= 110 else COLORS['danger']},
-                "bgcolor": 'rgba(255,255,255,0.1)',
-                "borderwidth": 2,
-                "bordercolor": 'rgba(255,255,255,0.2)',
-                "steps": [
-                    {"range": [0, 70], "color": 'rgba(244, 67, 54, 0.15)'},  # Red zone
-                    {"range": [70, 90], "color": 'rgba(255, 152, 0, 0.15)'},  # Orange zone
-                    {"range": [90, 110], "color": 'rgba(76, 175, 80, 0.15)'},  # Green zone
-                    {"range": [110, 120], "color": 'rgba(255, 152, 0, 0.15)'}   # Orange zone again
-                ],
-                "threshold": {
-                    "line": {"color": "white", "width": 2},
-                    "thickness": 0.75,
-                    "value": 100
-                }
-            },
-            number={"suffix": "%", "font": {"size": 20, "color": COLORS['text']}}
-        ))
-        
-        fig.update_layout(
-            height=300,
-            margin=dict(l=30, r=30, t=50, b=30),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font={"color": COLORS['text'], "family": "Arial"}
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        fig = create_gauge_chart(
+            overall_utilization,
+            title="Utilización Global del Presupuesto",
+            min_val=0,
+            max_val=120,
+            threshold=100
         )
-        
         st.plotly_chart(fig, use_container_width=True)
         
-        # Add utilization explanation
+        # Add utilization explanation with better styling
         if overall_utilization >= 100:
-            st.info("La ejecución presupuestaria está por encima de lo planificado. Revise las varianzas por cliente para identificar oportunidades de optimización.")
+            st.markdown('<div class="info-box">La ejecución presupuestaria está por encima de lo planificado. Revise las varianzas por cliente para identificar oportunidades de optimización.</div>', unsafe_allow_html=True)
         elif overall_utilization >= 90:
-            st.success("Utilización óptima del presupuesto.")
+            st.markdown('<div class="info-box" style="background-color: rgba(54, 211, 153, 0.1); border-left-color: #36D399;">Utilización óptima del presupuesto.</div>', unsafe_allow_html=True)
         elif overall_utilization >= 70:
-            st.warning("Utilización por debajo del objetivo. Revise las estrategias para mejorar la ejecución.")
+            st.markdown('<div class="warning-box">Utilización por debajo del objetivo. Revise las estrategias para mejorar la ejecución.</div>', unsafe_allow_html=True)
         else:
-            st.error("Baja utilización del presupuesto. Se requiere atención inmediata en la ejecución presupuestaria.")
+            st.markdown('<div class="error-box">Baja utilización del presupuesto. Se requiere atención inmediata en la ejecución presupuestaria.</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         # Create budget vs actual chart for top clients
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         top_budget_clients = budget_data.nlargest(7, "budget")
+        
+        st.markdown('<div class="chart-title">Top 7 Clientes: Presupuesto vs. Ejecución</div>', unsafe_allow_html=True)
         
         fig = px.bar(
             top_budget_clients,
             x="cliente",
             y=["budget", "actual"],
-            title="Top 7 Clientes: Presupuesto vs. Ejecución",
             barmode="group",
             labels={"value": "Monto ($)", "cliente": "Cliente", "variable": "Tipo"},
             color_discrete_map={
@@ -235,65 +217,74 @@ if not budget_data.empty and total_budget > 0:
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=40, r=40, t=60, b=100),
+            margin=dict(l=20, r=20, t=20, b=60),
             xaxis=dict(
                 showgrid=False,
                 tickangle=45,
                 title="",
-                color=COLORS['text']
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
             ),
             yaxis=dict(
                 showgrid=True,
-                gridcolor='rgba(255,255,255,0.1)',
-                title="Monto ($)",
+                gridcolor='rgba(255,255,255,0.05)',
+                title="",
                 tickprefix="$",
                 tickformat=",",
-                color=COLORS['text']
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
             ),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=-0.2,
+                y=-0.25,
                 xanchor="center",
                 x=0.5,
                 title="",
-                font=dict(color=COLORS['text'])
+                font=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
             ),
-            font=dict(family="Arial", size=12, color=COLORS['text']),
-            title_font=dict(size=16, color=COLORS['text'])
+            hoverlabel=dict(
+                bgcolor=COLORS['panel_bg'],
+                font_size=12,
+                font_family="Inter, sans-serif",
+                bordercolor='rgba(255,255,255,0.1)'
+            )
         )
         
         # Rename legend items
         for i, name in enumerate(["Presupuesto", "Ejecución"]):
             fig.data[i].name = name
+            fig.data[i].marker.line.width = 0
         
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("No hay datos de presupuesto disponibles")
 
 # Budget Variance Analysis
-st.header("Análisis de Varianzas")
+st.markdown('<h2>Análisis de Varianzas</h2>', unsafe_allow_html=True)
 
 if not budget_data.empty:
     # Add variance percentage if not already present
     if "variance_pct" not in budget_data.columns:
         budget_data["variance_pct"] = budget_data.apply(
-            lambda x: (x["variance"] / x["budget"] * 100) if x["budget"] > 0 else 0,
+            lambda x: round(((x["variance"] / x["budget"]) * 100), 1) if x["budget"] > 0 else 0,
             axis=1
-        ).round(1)
+        )
     
     # Create variance chart
+    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     budget_data_sorted = budget_data.sort_values("variance", ascending=False).head(15)
+    
+    st.markdown('<div class="chart-title">Top 15 Varianzas de Presupuesto</div>', unsafe_allow_html=True)
     
     fig = px.bar(
         budget_data_sorted,
         y="cliente",
         x="variance",
         color="variance",
-        color_continuous_scale=["red", "lightgray", "green"],
+        color_continuous_scale=["#F44336", "#EEEEEE", "#4CAF50"],
         color_continuous_midpoint=0,
-        title="Top 15 Varianzas de Presupuesto",
-        labels={"variance": "Varianza ($)", "cliente": "Cliente"},
         orientation="h",
         text="variance_pct"
     )
@@ -301,34 +292,42 @@ if not budget_data.empty:
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(l=20, r=20, t=20, b=20),
         xaxis=dict(
             showgrid=True,
-            gridcolor='rgba(255,255,255,0.1)',
-            title="Varianza ($)",
+            gridcolor='rgba(255,255,255,0.05)',
+            title="",
             tickprefix="$",
             tickformat=",",
-            color=COLORS['text']
+            color=COLORS['secondary_text'],
+            tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
         ),
         yaxis=dict(
             showgrid=False,
             title="",
-            color=COLORS['text']
+            color=COLORS['secondary_text'],
+            tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
         ),
-        font=dict(family="Arial", size=12, color=COLORS['text']),
-        title_font=dict(size=16, color=COLORS['text']),
-        coloraxis_showscale=False
+        coloraxis_showscale=False,
+        hoverlabel=dict(
+            bgcolor=COLORS['panel_bg'],
+            font_size=12,
+            font_family="Inter, sans-serif",
+            bordercolor='rgba(255,255,255,0.1)'
+        )
     )
     
     # Update text formatting and position
     fig.update_traces(
         texttemplate="%{text}%",
         textposition="outside",
-        textfont=dict(size=12, color=COLORS['text']),
-        hovertemplate="<b>%{y}</b><br>Varianza: $%{x:,.0f}<br>%{text}% del presupuesto"
+        textfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text']),
+        hovertemplate="<b>%{y}</b><br>Varianza: $%{x:,.0f}<br>%{text}% del presupuesto",
+        marker=dict(line=dict(width=0))
     )
     
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Variance Metrics
     col1, col2, col3 = st.columns(3)
@@ -336,44 +335,48 @@ if not budget_data.empty:
     with col1:
         # Count of over budget
         over_budget_count = (budget_data["variance"] > 0).sum()
-        over_budget_pct = (over_budget_count / len(budget_data) * 100).round(1)
+        over_budget_pct = round((over_budget_count / len(budget_data) * 100), 1)
         create_kpi_card(
             "Clientes Sobre Presupuesto", 
             over_budget_count,
-            subtitle=f"{over_budget_pct}% del total"
+            subtitle=f"{over_budget_pct}% del total",
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>'
         )
     
     with col2:
         # Count of under budget
         under_budget_count = (budget_data["variance"] < 0).sum()
-        under_budget_pct = (under_budget_count / len(budget_data) * 100).round(1)
+        under_budget_pct = round((under_budget_count / len(budget_data) * 100), 1)
         create_kpi_card(
             "Clientes Bajo Presupuesto", 
             under_budget_count,
-            subtitle=f"{under_budget_pct}% del total"
+            subtitle=f"{under_budget_pct}% del total",
+            icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg>'
         )
     
     with col3:
         # On budget (within 5% variance)
         if "variance_pct" in budget_data.columns:
             on_budget_count = ((budget_data["variance_pct"] <= 5) & (budget_data["variance_pct"] >= -5)).sum()
-            on_budget_pct = (on_budget_count / len(budget_data) * 100).round(1)
+            on_budget_pct = round((on_budget_count / len(budget_data) * 100), 1)
             create_kpi_card(
                 "Clientes En Presupuesto", 
                 on_budget_count,
-                subtitle=f"{on_budget_pct}% del total (±5%)"
+                subtitle=f"{on_budget_pct}% del total (±5%)",
+                icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
             )
         else:
             create_kpi_card(
                 "Clientes En Presupuesto", 
                 "N/A",
-                subtitle="(±5% varianza)"
+                subtitle="(±5% varianza)",
+                icon='<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
             )
 else:
     st.info("No hay datos de varianzas disponibles")
 
 # Budget Allocation
-st.header("Asignación del Presupuesto")
+st.markdown('<h2>Asignación del Presupuesto</h2>', unsafe_allow_html=True)
 
 if not df.empty and "presupuesto_x" in df.columns and "industria" in df.columns:
     # Create budget allocation by industry
@@ -389,84 +392,129 @@ if not df.empty and "presupuesto_x" in df.columns and "industria" in df.columns:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Create pie chart
-        fig = px.pie(
-            budget_by_industry,
-            values="Presupuesto",
-            names="Industria",
-            title="Asignación de Presupuesto por Industria",
-            color_discrete_sequence=CHART_COLORS_TRANSPARENT,
-            hole=0.5
+        # Create bar chart instead of pie chart to avoid opacity issues
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Asignación de Presupuesto por Industria</div>', unsafe_allow_html=True)
+        
+        # Get top 7 industries
+        top_industries = budget_by_industry.head(7)
+        
+        fig = px.bar(
+            top_industries,
+            y="Industria",
+            x="Presupuesto",
+            color="Presupuesto",
+            color_continuous_scale=[[0, COLORS['info']], [0.5, COLORS['accent3']], [1, COLORS['secondary']]],
+            orientation="h",
+            text="Presupuesto"
         )
         
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=20, r=20, t=60, b=20),
-            font=dict(family="Arial", size=12, color=COLORS['text']),
-            title_font=dict(size=16, color=COLORS['text']),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.2,
-                xanchor="center",
-                x=0.5,
-                font=dict(color=COLORS['text'])
+            margin=dict(l=20, r=20, t=20, b=20),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='rgba(255,255,255,0.05)',
+                title="",
+                tickprefix="$",
+                tickformat=",",
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
+            ),
+            yaxis=dict(
+                showgrid=False,
+                title="",
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
+            ),
+            coloraxis_showscale=False,
+            hoverlabel=dict(
+                bgcolor=COLORS['panel_bg'],
+                font_size=12,
+                font_family="Inter, sans-serif",
+                bordercolor='rgba(255,255,255,0.1)'
             )
         )
         
+        # Format text values
         fig.update_traces(
-            textposition='inside',
-            textinfo='percent+label',
-            textfont=dict(color=COLORS['text'], size=12),
-            hovertemplate='<b>%{label}</b><br>$%{value:,.0f}<br>%{percent}'
+            texttemplate='$%{x:,.0f}',
+            textposition='outside',
+            textfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text']),
+            marker=dict(line=dict(width=0)),
+            hovertemplate='<b>%{y}</b><br>$%{x:,.0f}'
         )
         
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         # Create bar chart
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Top 10 Industrias por Presupuesto</div>', unsafe_allow_html=True)
+        
         fig = px.bar(
             budget_by_industry.head(10),
             y="Industria",
             x="Presupuesto",
-            title="Top 10 Industrias por Presupuesto",
-            color_discrete_sequence=[COLORS['primary']],
+            color="Presupuesto",
+            color_continuous_scale=[[0, COLORS['info']], [0.5, COLORS['primary']], [1, COLORS['secondary']]],
             orientation="h"
         )
         
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=20, r=20, t=60, b=20),
+            margin=dict(l=20, r=20, t=20, b=20),
             xaxis=dict(
                 showgrid=True,
-                gridcolor='rgba(255,255,255,0.1)',
-                title="Presupuesto ($)",
+                gridcolor='rgba(255,255,255,0.05)',
+                title="",
                 tickprefix="$",
                 tickformat=",",
-                color=COLORS['text']
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
             ),
             yaxis=dict(
                 showgrid=False,
                 title="",
                 categoryorder="total ascending",
-                color=COLORS['text']
+                color=COLORS['secondary_text'],
+                tickfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text'])
             ),
-            font=dict(family="Arial", size=12, color=COLORS['text']),
-            title_font=dict(size=16, color=COLORS['text'])
+            coloraxis_showscale=False,
+            hoverlabel=dict(
+                bgcolor=COLORS['panel_bg'],
+                font_size=12,
+                font_family="Inter, sans-serif",
+                bordercolor='rgba(255,255,255,0.1)'
+            )
+        )
+        
+        # Add value labels to the bars
+        fig.update_traces(
+            texttemplate='$%{x:,.0f}',
+            textposition='outside',
+            textfont=dict(family="Inter, sans-serif", size=11, color=COLORS['secondary_text']),
+            marker=dict(line=dict(width=0))
         )
         
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("No hay datos suficientes para mostrar la asignación de presupuesto")
 
 # Budget vs Actual Details
-st.header("Detalle de Presupuesto vs. Ejecución")
+st.markdown('<h2>Detalle de Presupuesto vs. Ejecución</h2>', unsafe_allow_html=True)
 
 if not budget_data.empty:
     # Add search box for filtering the table
-    search_term = st.text_input("Buscar Cliente", "")
+    search_box_container = st.container()
+    with search_box_container:
+        st.markdown('<div style="margin-bottom: 1rem;">', unsafe_allow_html=True)
+        search_term = st.text_input("🔍 Buscar Cliente", "")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Prepare data for display
     display_df = budget_data.copy()
@@ -474,7 +522,7 @@ if not budget_data.empty:
     # Ensure we have utilization percentage
     if "utilization" not in display_df.columns:
         display_df["utilization"] = display_df.apply(
-            lambda x: (x["actual"] / x["budget"] * 100).round(1) if x["budget"] > 0 else 0, 
+            lambda x: round((x["actual"] / x["budget"] * 100), 1) if x["budget"] > 0 else 0,
             axis=1
         )
     
@@ -508,39 +556,43 @@ if not budget_data.empty:
             )
     
     # Create styled dataframe with conditional formatting
+    st.markdown('<div class="chart-container" style="padding: 0;">', unsafe_allow_html=True)
     st.dataframe(
         display_df,
         use_container_width=True,
         height=400,
         hide_index=True
     )
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Export options
-    st.download_button(
-        label="Exportar a CSV",
-        data=display_df.to_csv(index=False).encode('utf-8'),
-        file_name="activagroup_presupuesto.csv",
-        mime="text/csv",
-        help="Descargar la tabla de presupuesto en formato CSV"
-    )
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        st.download_button(
+            label="Exportar a CSV",
+            data=display_df.to_csv(index=False).encode('utf-8'),
+            file_name="activagroup_presupuesto.csv",
+            mime="text/csv",
+            help="Descargar la tabla de presupuesto en formato CSV"
+        )
 else:
     st.info("No hay datos de presupuesto disponibles")
 
 # Budget Performance Insights
-st.header("Insights de Rendimiento Presupuestario")
+st.markdown('<h2>Insights de Rendimiento Presupuestario</h2>', unsafe_allow_html=True)
 
 if not budget_data.empty:
     # Ensure we have variance_pct
     if "variance_pct" not in budget_data.columns:
         budget_data["variance_pct"] = budget_data.apply(
-            lambda x: (x["variance"] / x["budget"] * 100).round(1) if x["budget"] > 0 else 0, 
+            lambda x: round((x["variance"] / x["budget"] * 100), 1) if x["budget"] > 0 else 0,
             axis=1
         )
     
     # Ensure we have utilization
     if "utilization" not in budget_data.columns:
         budget_data["utilization"] = budget_data.apply(
-            lambda x: (x["actual"] / x["budget"] * 100).round(1) if x["budget"] > 0 else 0, 
+            lambda x: round((x["actual"] / x["budget"] * 100), 1) if x["budget"] > 0 else 0,
             axis=1
         )
     
@@ -552,7 +604,9 @@ if not budget_data.empty:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Clientes Sobre Ejecución (>110%)")
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Clientes Sobre Ejecución (>110%)</div>', unsafe_allow_html=True)
+        
         if not over_performers.empty:
             over_df = over_performers[["cliente", "budget", "actual", "utilization"]].head(5)
             over_df = over_df.rename(columns={
@@ -574,9 +628,12 @@ if not budget_data.empty:
                 st.warning(f"Estos {len(over_performers)} clientes están sobre el presupuesto por un total de ${total_over:,.0f}.")
         else:
             st.success("No hay clientes con sobre-ejecución mayor al 110%.")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.subheader("Clientes Bajo Ejecución (<70%)")
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Clientes Bajo Ejecución (<70%)</div>', unsafe_allow_html=True)
+        
         if not under_performers.empty:
             under_df = under_performers[["cliente", "budget", "actual", "utilization"]].head(5)
             under_df = under_df.rename(columns={
@@ -598,19 +655,23 @@ if not budget_data.empty:
                 st.error(f"Estos {len(under_performers)} clientes están bajo el presupuesto por un total de ${total_under:,.0f}.")
         else:
             st.success("No hay clientes con bajo rendimiento presupuestario (<70%).")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # On-target performance
-    st.subheader("Rendimiento Óptimo (90-110%)")
+    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">Rendimiento Óptimo (90-110%)</div>', unsafe_allow_html=True)
+    
     on_target_count = len(on_target)
-    on_target_pct = (on_target_count / len(budget_data) * 100).round(1)
+    on_target_pct = round((on_target_count / len(budget_data) * 100), 1)
     
     st.info(f"{on_target_count} clientes ({on_target_pct}% del total) tienen una ejecución óptima entre el 90% y 110% del presupuesto.")
+    st.markdown('</div>', unsafe_allow_html=True)
 else:
     st.info("No hay datos suficientes para generar insights")
 
-# Footer
+# Footer with modern styling
 st.markdown("""
-<div style="text-align: center; margin-top: 2rem; padding: 1rem; color: rgba(255,255,255,0.5); font-size: 0.8rem;">
+<div class="footer">
     <p>ActivaGroup Business Intelligence Dashboard © 2025</p>
 </div>
 """, unsafe_allow_html=True)

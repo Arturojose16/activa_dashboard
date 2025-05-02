@@ -27,7 +27,7 @@ if st.session_state.go_dashboard:
 
 if st.session_state.go_assistant:
     st.session_state.go_assistant = False
-    st.switch_page("pages/AI_Assistant.py")
+    st.switch_page("pages/AI_Agent.py")
 
 # --- Background Image ---
 def set_background(image_file):
